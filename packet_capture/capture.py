@@ -1,4 +1,33 @@
+from socket import gethostbyname,gethostname
+
+local_ip=gethostbyname(gethostname())
+
+from datetime import datetime
+
 from scapy.all import *
+
+packet_number=0
+
+services = {
+    20: "FTP-Data",
+    21: "FTP",
+    22: "SSH",
+    23: "Telnet",
+    25: "SMTP",
+    53: "DNS",
+    67: "DHCP",
+    68: "DHCP",
+    80: "HTTP",
+    110: "POP3",
+    123: "NTP",
+    143: "IMAP",
+    161: "SNMP",
+    443: "HTTPS",
+    3306: "MySQL",
+    3389: "RDP",
+    8009: "AJP",
+    8080: "HTTP-Alt"
+}
 
 protocols = {
     1: "ICMP",
@@ -32,6 +61,26 @@ protocols = {
 
 def packet_callback(packet):
 
+    global packet_number
+    packet_number+=1
+
+    current_time=datetime.now().strftime("%H:%M:%S")
+
+    if packet[IP].src == local_ip:
+        direction="Outgoing"
+    elif packet[IP].dst == local_ip:
+        direction="Incoming"
+    else:
+        direction: "Unknown"
+
+    print("="*50)
+    print(f"packet #{packet_number}")
+    print("="*50)
+
+    print(f"Time                : {current_time}")
+
+    print(f"Direction           : {direction}")
+
     if IP in packet:
 
         print("Source IP           :",packet[IP].src)
@@ -42,11 +91,27 @@ def packet_callback(packet):
 
         if TCP in packet:
 
+            if packet[TCP].dport in services:
+                service=services[packet[TCP].dport]
+            elif packet[TCP].sport in services:
+                service=services[packet[TCP].sport]
+            else:
+                service= "Unknown"
+
+            print(f"Service             : {service}")
             print("Source Port         :", packet[TCP].sport)
             print("Destination Port    :", packet[TCP].dport)
 
         elif UDP in packet:
 
+            if packet[UCP].dport in services:
+                service=services[packet[UDP].dport]
+            elif packet[UDP].sport in services:
+                service=services[packet[UDP].sport]
+            else:
+                service= "Unknown"
+                        
+            print(f"Service             : {service}")            
             print("Source Port         :", packet[UDP].sport)
             print("Destination Port    :", packet[UDP].dport)
 
