@@ -98,6 +98,9 @@ def packet_callback(packet):
             else:
                 service= "Unknown"
 
+            flag=packet[TCP].flags
+            print(f"TCP Flags           : {flag}")
+            
             print(f"Service             : {service}")
             print("Source Port         :", packet[TCP].sport)
             print("Destination Port    :", packet[TCP].dport)
