@@ -61,17 +61,13 @@ protocols = {
 
 def packet_callback(packet):
 
+    if IP not in packet:
+        return
+
     global packet_number
     packet_number+=1
 
     current_time=datetime.now().strftime("%H:%M:%S")
-
-    if packet[IP].src == local_ip:
-        direction="Outgoing"
-    elif packet[IP].dst == local_ip:
-        direction="Incoming"
-    else:
-        direction: "Unknown"
 
     print("="*50)
     print(f"packet #{packet_number}")
@@ -79,12 +75,22 @@ def packet_callback(packet):
 
     print(f"Time                : {current_time}")
 
-    print(f"Direction           : {direction}")
-
     if IP in packet:
+
+        if packet[IP].src == local_ip:
+                direction="Outgoing"
+        elif packet[IP].dst == local_ip:
+                direction="Incoming"
+        else:
+                direction="Unknown"
+
+        print(f"Direction           : {direction}")
 
         print("Source IP           :",packet[IP].src)
         print("Destination IP      :",packet[IP].dst)
+        print("TTL                 :",packet[IP].ttl)
+        print("IP ID               :",packet[IP].id)
+        print("Fragement Offset    :",packet[IP].frag)
 
         protocol = protocols.get(packet[IP].proto, f"Unknown ({packet[IP].proto})")
         print("Protocol            :", protocol)
@@ -107,7 +113,7 @@ def packet_callback(packet):
 
         elif UDP in packet:
 
-            if packet[UCP].dport in services:
+            if packet[UDP].dport in services:
                 service=services[packet[UDP].dport]
             elif packet[UDP].sport in services:
                 service=services[packet[UDP].sport]
@@ -123,6 +129,6 @@ def packet_callback(packet):
         
 print("Capturing 5 packets...\n")
 
-sniff(count=5, prn=packet_callback)
+sniff(filter="ip", count=5, prn=packet_callback)
 
 print("\nPacket capturing completed.")
