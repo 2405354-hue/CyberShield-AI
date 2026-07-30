@@ -119,6 +119,14 @@ def packet_callback(packet):
                 service=services[packet[UDP].sport]
             else:
                 service= "Unknown"
+
+        if Ether in packet:
+            source_mac = packet[Ether].src
+            destination_mac = packet[Ether].dst
+            print("Source MAC          :", source_mac)
+            print("Destination MAC     :", destination_mac)
+            ethernet_type = packet[Ether].type
+            print("Ethernet Type       :", hex(ethernet_type))
                         
             print(f"Service             : {service}")            
             print("Source Port         :", packet[UDP].sport)
