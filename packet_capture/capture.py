@@ -1,3 +1,5 @@
+import csv
+
 from socket import gethostbyname,gethostname
 
 local_ip=gethostbyname(gethostname())
@@ -59,6 +61,31 @@ protocols = {
     140: "Shim6"
 }
 
+csv_file = "captured_packets.csv"
+
+with open(csv_file, mode="w", newline="") as file:
+    writer = csv.writer(file)
+
+    writer.writerow([
+        "Packet No",
+        "Time",
+        "Source MAC",
+        "Destination MAC",
+        "Ethernet Type",
+        "Direction",
+        "Source IP",
+        "Destination IP",
+        "TTL",
+        "IP ID",
+        "Fragment Offset",
+        "Protocol",
+        "Source Port",
+        "Destination Port",
+        "Service",
+        "TCP Flags",
+        "Packet Length"
+    ])
+
 def packet_callback(packet):
 
     if IP not in packet:
@@ -86,53 +113,105 @@ def packet_callback(packet):
 
         print(f"Direction           : {direction}")
 
-        print("Source IP           :",packet[IP].src)
-        print("Destination IP      :",packet[IP].dst)
-        print("TTL                 :",packet[IP].ttl)
-        print("IP ID               :",packet[IP].id)
-        print("Fragement Offset    :",packet[IP].frag)
+        source_ip = packet[IP].src
+        print("Source IP           :", source_ip)
 
+        destination_ip = packet[IP].dst
+        print("Destination IP      :", destination_ip)
+
+        ttl = packet[IP].ttl
+        print("TTL                 :", ttl)
+
+        ip_id = packet[IP].id
+        print("IP ID               :", ip_id)
+
+        fragment_offset = packet[IP].frag
+        print("Fragment Offset     :", fragment_offset)
+        
+        packet_length = len(packet)
+        
         protocol = protocols.get(packet[IP].proto, f"Unknown ({packet[IP].proto})")
         print("Protocol            :", protocol)
 
+        source_port = ""
+        destination_port = ""
+        service = ""
+        flag = ""
+
         if TCP in packet:
 
+            source_port = packet[TCP].sport
+            destination_port = packet[TCP].dport
+
             if packet[TCP].dport in services:
-                service=services[packet[TCP].dport]
+                service=services[destination_port]
             elif packet[TCP].sport in services:
-                service=services[packet[TCP].sport]
+                service=services[source_port]
             else:
                 service= "Unknown"
 
-            flag=packet[TCP].flags
+            flag= str(packet[TCP].flags)
             print(f"TCP Flags           : {flag}")
-            
+
             print(f"Service             : {service}")
-            print("Source Port         :", packet[TCP].sport)
-            print("Destination Port    :", packet[TCP].dport)
+            print("Source Port         :", source_port)
+            print("Destination Port    :", destination_port)
 
         elif UDP in packet:
 
+            source_port = packet[UDP].sport
+            destination_port = packet[UDP].dport
+
             if packet[UDP].dport in services:
-                service=services[packet[UDP].dport]
+                service=services[destination_port]
             elif packet[UDP].sport in services:
-                service=services[packet[UDP].sport]
+                service=services[source_port]
             else:
                 service= "Unknown"
 
+            print(f"Service             : {service}")            
+            print("Source Port         :", source_port)
+            print("Destination Port    :", destination_port)
+                
+        source_mac = ""
+        destination_mac = ""
+        ethernet_type = ""
+
         if Ether in packet:
+
             source_mac = packet[Ether].src
             destination_mac = packet[Ether].dst
+
             print("Source MAC          :", source_mac)
             print("Destination MAC     :", destination_mac)
-            ethernet_type = packet[Ether].type
-            print("Ethernet Type       :", hex(ethernet_type))
-                        
-            print(f"Service             : {service}")            
-            print("Source Port         :", packet[UDP].sport)
-            print("Destination Port    :", packet[UDP].dport)
 
-        print("Packet length       :", len(packet), "bytes")
+            ethernet_type = hex(packet[Ether].type)
+            print("Ethernet Type       :", ethernet_type)
+
+        with open(csv_file, mode="a", newline="") as file:
+            writer = csv.writer(file)
+
+            writer.writerow([
+                packet_number,
+                current_time,
+                source_mac,
+                destination_mac,
+                ethernet_type,
+                direction,
+                source_ip,
+                destination_ip,
+                ttl,
+                ip_id,
+                fragment_offset,
+                protocol,
+                source_port,
+                destination_port,
+                service,
+                flag,
+                packet_length
+            ])
+                        
+        print("Packet length       :", packet_length , "bytes")
         print("_ "*50)
         
 print("Capturing 5 packets...\n")
