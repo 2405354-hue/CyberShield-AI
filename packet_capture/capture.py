@@ -216,6 +216,6 @@ def packet_callback(packet):
         
 print("Capturing 5 packets...\n")
 
-sniff(filter="ip", count=5, prn=packet_callback)
+sniff(filter="ip", count=100, prn=packet_callback)
 
 print("\nPacket capturing completed.")
