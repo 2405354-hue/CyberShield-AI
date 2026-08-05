@@ -2,6 +2,8 @@ import pandas as pd
 
 import time
 
+import joblib
+
 from sklearn.model_selection import train_test_split
 
 from sklearn.ensemble import RandomForestClassifier
@@ -84,3 +86,7 @@ print(y_pred[:10])
 print("Model trained successfully!")
 
 print(X.dtypes.unique())
+
+joblib.dump(model, "cybershield_model.pkl")
+
+print("Model saved successfully!")
