@@ -12,13 +12,13 @@ from sklearn.metrics import (accuracy_score, confusion_matrix , classification_r
 
 data = pd.read_csv("../data/cicids2017_cleaned.csv")
 
-#print(data.head())
+print(data.head())
 
 print(data.shape)
 
-#print(data.columns)
+print(data.columns)
 
-#print(data.info())
+print(data.info())
 
 X = data.drop("Attack Type", axis=1)
 
