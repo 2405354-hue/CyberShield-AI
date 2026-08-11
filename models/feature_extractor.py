@@ -127,6 +127,21 @@ for key, value in flows.items():
     ).total_seconds()
 
     if duration > 0:
+
+        flow_bytes_per_second = (
+        value["total_bytes"] / duration
+        )
+
+        flow_packets_per_second = (
+        value["packet_count"] / duration
+        )
+
+    else:
+
+        flow_bytes_per_second = 0
+        flow_packets_per_second = 0
+
+    if duration > 0:
         packets_per_second = value["packet_count"] / duration
         bytes_per_second = value["total_bytes"] / duration
     else:
@@ -165,7 +180,75 @@ for key, value in flows.items():
         bwd_mean = 0
         bwd_std = 0
 
-    feature_rows.append({
+all_times = (
+    value["forward_times"]
+    + value["backward_times"]
+)
+
+all_times.sort()
+
+iat_values = []
+
+for i in range(1, len(all_times)):
+
+    iat = (
+        all_times[i] - all_times[i - 1]
+    ).total_seconds()
+
+    iat_values.append(iat)
+
+    if iat_values:
+
+        flow_iat_mean = sum(iat_values) / len(iat_values)
+
+        flow_iat_max = max(iat_values)
+        flow_iat_min = min(iat_values)
+
+        if len(iat_values) > 1:
+            flow_iat_std = pd.Series(iat_values).std()
+        else:
+            flow_iat_std = 0
+
+    else:
+
+        flow_iat_mean = 0
+        flow_iat_std = 0
+        flow_iat_max = 0
+        flow_iat_min = 0
+
+forward_times = sorted(value["forward_times"])
+
+fwd_iat_values = []
+
+for i in range(1, len(forward_times)):
+
+    iat = (
+        forward_times[i] - forward_times[i - 1]
+    ).total_seconds()
+
+    fwd_iat_values.append(iat)
+
+if fwd_iat_values:
+
+    fwd_iat_total = sum(fwd_iat_values)
+    fwd_iat_mean = fwd_iat_total / len(fwd_iat_values)
+    fwd_iat_max = max(fwd_iat_values)
+    fwd_iat_min = min(fwd_iat_values)
+
+    if len(fwd_iat_values) > 1:
+        fwd_iat_std = pd.Series(fwd_iat_values).std()
+    else:
+        fwd_iat_std = 0
+
+else:
+
+    fwd_iat_total = 0
+    fwd_iat_mean = 0
+    fwd_iat_std = 0
+    fwd_iat_max = 0
+    fwd_iat_min = 0
+
+feature_rows.append({
     "Destination Port": value["destination_port"],
     "Flow Duration": duration * 1_000_000,
 
@@ -180,7 +263,20 @@ for key, value in flows.items():
     "Bwd Packet Length Max": bwd_max,
     "Bwd Packet Length Min": bwd_min,
     "Bwd Packet Length Mean": bwd_mean,
-    "Bwd Packet Length Std": bwd_std
+    "Bwd Packet Length Std": bwd_std,
+
+    "Flow Bytes/s": flow_bytes_per_second,
+    "Flow Packets/s": flow_packets_per_second,
+    "Flow IAT Mean": flow_iat_mean,
+    "Flow IAT Std": flow_iat_std,
+    "Flow IAT Max": flow_iat_max,
+    "Flow IAT Min": flow_iat_min,
+
+    "Fwd IAT Total": fwd_iat_total * 1_000_000,
+    "Fwd IAT Mean": fwd_iat_mean * 1_000_000,
+    "Fwd IAT Std": fwd_iat_std * 1_000_000,
+    "Fwd IAT Max": fwd_iat_max * 1_000_000,
+    "Fwd IAT Min": fwd_iat_min * 1_000_000
 })
     
 features = pd.DataFrame(feature_rows)
