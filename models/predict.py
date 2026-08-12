@@ -1,4 +1,5 @@
 import joblib
+
 import pandas as pd
 
 model = joblib.load("cybershield_model.pkl")
@@ -16,4 +17,5 @@ print("\nTraining feature count:", X.shape[1])
 print("\nTraining feature names:")
 
 for i, column in enumerate(X.columns, start=1):
+
     print(i, ":", column)

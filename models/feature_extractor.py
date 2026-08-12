@@ -44,6 +44,15 @@ for index, packet in packets.iterrows():
     protocol = packet["Protocol"]
     packet_length = packet["Packet Length"]
 
+    if protocol == "TCP":
+        header_length = 40
+
+    elif protocol == "UDP":
+        header_length = 28
+
+    else:
+        header_length = 20
+
     packet_time = datetime.strptime(
         packet["Time"],
         "%H:%M:%S"
@@ -73,6 +82,9 @@ for index, packet in packets.iterrows():
             "forward_bytes": packet_length,
             "backward_bytes": 0,
 
+            "forward_header_length": header_length,
+            "backward_header_length": 0,
+
             "forward_lengths": [packet_length],
             "backward_lengths": [],
 
@@ -96,6 +108,7 @@ for index, packet in packets.iterrows():
 
         flows[flow_key]["forward_packets"] += 1
         flows[flow_key]["forward_bytes"] += packet_length
+        flows[flow_key]["forward_header_length"] += header_length
 
         flows[flow_key]["forward_lengths"].append(
             packet_length
@@ -109,6 +122,7 @@ for index, packet in packets.iterrows():
 
         flows[flow_key]["backward_packets"] += 1
         flows[flow_key]["backward_bytes"] += packet_length
+        flows[flow_key]["backward_header_length"] += header_length
 
         flows[flow_key]["backward_lengths"].append(
             packet_length
@@ -125,6 +139,21 @@ for key, value in flows.items():
     duration = (
         value["last_time"] - value["first_time"]
     ).total_seconds()
+
+    if duration > 0:
+
+        fwd_packets_per_second = (
+            value["forward_packets"] / duration
+        )
+
+        bwd_packets_per_second = (
+            value["backward_packets"] / duration
+        )
+
+    else:
+
+        fwd_packets_per_second = 0
+        bwd_packets_per_second = 0
 
     if duration > 0:
 
@@ -248,6 +277,56 @@ else:
     fwd_iat_max = 0
     fwd_iat_min = 0
 
+backward_times = sorted(value["backward_times"])
+
+bwd_iat_values = []
+
+for i in range(1, len(backward_times)):
+
+    iat = (
+        backward_times[i] - backward_times[i - 1]
+    ).total_seconds()
+
+    bwd_iat_values.append(iat)
+
+if bwd_iat_values:
+
+    bwd_iat_total = sum(bwd_iat_values)
+    bwd_iat_mean = bwd_iat_total / len(bwd_iat_values)
+    bwd_iat_max = max(bwd_iat_values)
+    bwd_iat_min = min(bwd_iat_values)
+
+    if len(bwd_iat_values) > 1:
+        bwd_iat_std = pd.Series(bwd_iat_values).std()
+    else:
+        bwd_iat_std = 0
+
+else:
+
+    bwd_iat_total = 0
+    bwd_iat_mean = 0
+    bwd_iat_std = 0
+    bwd_iat_max = 0
+    bwd_iat_min = 0
+
+all_packet_lengths = (
+    value["forward_lengths"]
+    + value["backward_lengths"]
+)
+
+packet_min = min(all_packet_lengths)
+packet_max = max(all_packet_lengths)
+packet_mean = (
+    sum(all_packet_lengths) / len(all_packet_lengths)
+)
+
+if len(all_packet_lengths) > 1:
+    packet_std = pd.Series(all_packet_lengths).std()
+    packet_variance = pd.Series(all_packet_lengths).var()
+else:
+    packet_std = 0
+    packet_variance = 0
+
 feature_rows.append({
     "Destination Port": value["destination_port"],
     "Flow Duration": duration * 1_000_000,
@@ -276,7 +355,25 @@ feature_rows.append({
     "Fwd IAT Mean": fwd_iat_mean * 1_000_000,
     "Fwd IAT Std": fwd_iat_std * 1_000_000,
     "Fwd IAT Max": fwd_iat_max * 1_000_000,
-    "Fwd IAT Min": fwd_iat_min * 1_000_000
+    "Fwd IAT Min": fwd_iat_min * 1_000_000,
+
+    "Bwd IAT Total": bwd_iat_total * 1_000_000,
+    "Bwd IAT Mean": bwd_iat_mean * 1_000_000,
+    "Bwd IAT Std": bwd_iat_std * 1_000_000,
+    "Bwd IAT Max": bwd_iat_max * 1_000_000,
+    "Bwd IAT Min": bwd_iat_min * 1_000_000,
+
+    "Fwd Header Length": value["forward_header_length"],
+    "Bwd Header Length": value["backward_header_length"],
+
+    "Fwd Packets/s": fwd_packets_per_second,
+    "Bwd Packets/s": bwd_packets_per_second,
+
+    "Min Packet Length": packet_min,
+    "Max Packet Length": packet_max,
+    "Packet Length Mean": packet_mean,
+    "Packet Length Std": packet_std,
+    "Packet Length Variance": packet_variance,
 })
     
 features = pd.DataFrame(feature_rows)
